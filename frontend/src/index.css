@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+/* ─── Tailwind v4 Base Theme Defaults ─── */
+@theme {
+  --font-family-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Fallback definitions for tailwind classes to map to our CSS variables */
+  --color-fintech-bg: var(--theme-bg);
+  --color-fintech-surface: var(--theme-surface);
+  --color-fintech-card: var(--theme-card);
+  --color-fintech-subcard: var(--theme-subcard);
+  
+  --color-fintech-text: var(--theme-text-primary);
+  --color-fintech-secondary: var(--theme-text-secondary);
+  --color-fintech-muted: var(--theme-text-muted);
+  
+  --color-fintech-border: var(--theme-border);
+  --color-fintech-border-light: var(--theme-border-light);
+  
+  --color-fintech-primary: var(--theme-primary);
+  --color-fintech-accent: var(--theme-accent);
+  
+  --color-fintech-safe: var(--theme-safe);
+  --color-fintech-confirm: var(--theme-confirm);
+  --color-fintech-deposit: var(--theme-deposit);
+  --color-fintech-danger: var(--theme-danger);
+}
+
+/* ─── Theme CSS Variables (Day & Dark Modes) ─── */
+:root {
+  /* DAY MODE (Warm Porcelain) */
+  --theme-bg: #F7F3EC;
+  --theme-surface: #FFFDF8;
+  --theme-card: #FFFFFF;
+  --theme-subcard: #FAF7F1;
+  --theme-section: #F1E8DC;
+  
+  --theme-text-primary: #1F2933;
+  --theme-text-secondary: #52606D;
+  --theme-text-muted: #8A7F73;
+  
+  --theme-border: #E7DDD0;
+  --theme-border-light: #F1E8DC;
+  
+  --theme-primary: #3A7D7C; /* muted teal */
+  --theme-accent: #C08457; /* soft copper */
+  --theme-highlight: #7C6F64; /* warm taupe */
+  
+  --theme-safe: #6FAF7A; /* soft green */
+  --theme-confirm: #D6A84F; /* muted gold */
+  --theme-deposit: #E28C61; /* soft clay orange */
+  --theme-danger: #D95F5F; /* soft red */
+  
+  --gradient-surface: linear-gradient(145deg, #FFFDF8 0%, #FAF7F1 100%);
+  --gradient-accent: linear-gradient(135deg, #3A7D7C 0%, #C08457 100%);
+  --gradient-risk: linear-gradient(135deg, #E28C61 0%, #D95F5F 100%);
+  
+  --shadow-subtle: 0 4px 12px rgba(31, 41, 51, 0.04);
+  --shadow-hover: 0 8px 24px rgba(31, 41, 51, 0.08);
+}
+
+.dark {
+  /* DARK MODE (Charcoal Cocoa) */
+  --theme-bg: #12110F;
+  --theme-surface: #1A1815;
+  --theme-card: #252019;
+  --theme-subcard: #2A241D;
+  --theme-section: #211E1A;
+  
+  --theme-text-primary: #F8F1E7;
+  --theme-text-secondary: #C9BBAA;
+  --theme-text-muted: #8F8172;
+  
+  --theme-border: rgba(248, 241, 231, 0.11);
+  --theme-border-light: rgba(248, 241, 231, 0.05);
+  
+  --theme-primary: #8FD6C8; /* muted aqua */
+  --theme-accent: #E3B16F; /* amber sand */
+  --theme-highlight: #BCA58A; /* soft linen */
+  
+  --theme-safe: #8BCB91; /* sage green */
+  --theme-confirm: #E3B16F; /* amber */
+  --theme-deposit: #E99A6C; /* muted coral */
+  --theme-danger: #E66F6F; /* soft danger red */
+  
+  --gradient-surface: linear-gradient(145deg, #252019 0%, #1A1815 100%);
+  --gradient-accent: linear-gradient(135deg, #8FD6C8 0%, #E3B16F 100%);
+  --gradient-risk: linear-gradient(135deg, #E99A6C 0%, #E66F6F 100%);
+  
+  --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Base Styles ─── */
+body {
+  margin: 0;
+  background-color: var(--theme-bg);
+  color: var(--theme-text-primary);
+  font-family: var(--font-family-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ─── Clean Surface Classes ─── */
+.surface-card {
+  background: var(--theme-card);
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--shadow-subtle);
+  border-radius: 1rem;
+}
+
+.surface-drawer {
+  background: var(--theme-surface);
+  border-left: 1px solid var(--theme-border);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+}
+
+.surface-sidebar {
+  background: var(--theme-surface);
+  border-right: 1px solid var(--theme-border);
+}
+
+.drawer-overlay {
+  background: rgba(18, 17, 15, 0.4);
+}
+
+/* ─── Hover Lift ─── */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* ─── Keyframe Animations (Cleaned) ─── */
+@keyframes fade-slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ping-slow {
+  0% { transform: scale(1); opacity: 1; }
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+.animate-fade-slide-in { animation: fade-slide-in 0.3s ease-out forwards; }
+.animate-ping-slow { animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-text-muted);
+}
+
+/* ─── Slider Range Input Styling ─── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--theme-border);
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--theme-primary);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}

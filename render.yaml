@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: sentinel-backend
+    env: python
+    region: ohio
+    plan: free
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: DATABASE_URL
+        sync: false # You will set this in Render dashboard (PostgreSQL URL)
+      - key: HUGGINGFACE_API_KEY
+        sync: false
