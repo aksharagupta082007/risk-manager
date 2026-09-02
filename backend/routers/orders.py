@@ -2,7 +2,7 @@ import io
 import pandas as pd
 import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models import Order, Customer, Product, RiskScore, ReasonCode, MerchantPolicy
 from schemas import ManualOrderCreate, OrderResponseSchema
@@ -14,7 +14,11 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 
 @router.get("", response_model=list)
 def get_orders(db: Session = Depends(get_db), limit: int = 100, offset: int = 0, status: str = None, created_after: str = None):
-    query = db.query(Order)
+    query = db.query(Order).options(
+        joinedload(Order.risk_score).joinedload(RiskScore.reason_codes),
+        joinedload(Order.customer),
+        joinedload(Order.product)
+    )
     if status:
         query = query.filter(Order.status == status)
     if created_after:
@@ -58,7 +62,11 @@ def get_orders(db: Session = Depends(get_db), limit: int = 100, offset: int = 0,
 
 @router.get("/high-risk", response_model=list)
 def get_high_risk_orders(db: Session = Depends(get_db), min_score: int = 30, created_after: str = None):
-    query = db.query(Order).join(RiskScore).filter(RiskScore.risk_score >= min_score)
+    query = db.query(Order).options(
+        joinedload(Order.risk_score).joinedload(RiskScore.reason_codes),
+        joinedload(Order.customer),
+        joinedload(Order.product)
+    ).join(RiskScore).filter(RiskScore.risk_score >= min_score)
     if created_after:
         try:
             dt = datetime.datetime.fromisoformat(created_after.replace('Z', '+00:00'))

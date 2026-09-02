@@ -25,7 +25,7 @@ Details:
 
 Provide a concise, 3-bullet-point explanation focusing on margin protection and recommended protective action. Do NOT label the customer as a fraudster."""
 
-        hf_response = cls._query_huggingface(prompt)
+        hf_response = cls._query_llm(prompt)
         if hf_response:
             explanation = hf_response
         else:
@@ -45,7 +45,7 @@ Provide a concise, 3-bullet-point explanation focusing on margin protection and 
 Stats: Total Orders = {total_orders}, High-Risk Orders = {high_risk_count}, Total Volume = ₹{total_amount:,.2f}, Expected Prevented Loss = ₹{prevented_loss:,.2f}.
 Format into 3 key merchant takeaways: 1. Risk posture, 2. Priority actions required, 3. Revenue margin protected."""
 
-        hf_response = cls._query_huggingface(prompt)
+        hf_response = cls._query_llm(prompt)
         if hf_response:
             summary = hf_response
         else:
@@ -71,7 +71,7 @@ Format into 3 key merchant takeaways: 1. Risk posture, 2. Priority actions requi
         if "explain" in lower_p and context_order:
             return cls.explain_order_risk(context_order)
 
-        if "brief" in lower_p or "summary" in lower_p or "today" in lower_p:
+        if ("brief" in lower_p or "today" in lower_p) and "customer" not in lower_p:
             return cls.generate_daily_brief(60, 18, 142500.0, 38400.0)
 
         if "draft" in lower_p and "whatsapp" in lower_p and context_order:
@@ -103,7 +103,7 @@ Format into 3 key merchant takeaways: 1. Risk posture, 2. Priority actions requi
 
         # General LLM query / fallback
         sys_prompt = f"You are Sentinel AI Risk Copilot. Assist the merchant with: '{prompt_text}'. Keep response focused on pre-shipping RTO risk, margin protection, precision/recall trade-offs, and protective action selection."
-        hf_response = cls._query_huggingface(sys_prompt)
+        hf_response = cls._query_llm(sys_prompt)
 
         if hf_response:
             ans = hf_response
@@ -122,25 +122,40 @@ Format into 3 key merchant takeaways: 1. Risk posture, 2. Priority actions requi
         }
 
     @classmethod
-    def _query_huggingface(cls, prompt: str) -> Optional[str]:
-        api_key = settings.HUGGINGFACE_API_KEY
+    def _query_llm(cls, prompt: str) -> Optional[str]:
+        import re
+        api_key = settings.GROQ_API_KEY
         if not api_key:
             return None
 
         try:
-            headers = {"Authorization": f"Bearer {api_key}"}
-            url = f"https://api-inference.huggingface.co/models/{settings.HUGGINGFACE_MODEL}"
-            payload = {
-                "inputs": prompt,
-                "parameters": {"max_new_tokens": 250, "temperature": 0.3}
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
             }
-            resp = requests.post(url, headers=headers, json=payload, timeout=5)
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            payload = {
+                "model": settings.GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are Sentinel AI Risk Copilot for an e-commerce merchant. Give direct, concise answers. Do NOT use <think> tags or internal reasoning. Respond immediately with your answer."},
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 500,
+                "temperature": 0.3
+            }
+            resp = requests.post(url, headers=headers, json=payload, timeout=15)
             if resp.status_code == 200:
                 result = resp.json()
-                if isinstance(result, list) and len(result) > 0:
-                    return result[0].get("generated_text", "").replace(prompt, "").strip()
-        except Exception:
-            pass
+                if "choices" in result and len(result["choices"]) > 0:
+                    text = result["choices"][0]["message"]["content"].strip()
+                    # Strip Qwen thinking tags if present
+                    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+                    if text:
+                        return text
+            else:
+                print(f"Groq API Error: {resp.status_code} - {resp.text}")
+        except Exception as e:
+            print(f"Groq Request Failed: {e}")
         return None
 
     @classmethod
