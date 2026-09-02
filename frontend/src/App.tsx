@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Layout } from './components/Layout';
 import { CommandCenter } from './pages/CommandCenter';
 import { HighRiskQueue } from './pages/HighRiskQueue';
@@ -22,6 +23,7 @@ const App: React.FC = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
+      <SpeedInsights />
     </BrowserRouter>
   );
 };
