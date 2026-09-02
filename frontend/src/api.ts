@@ -18,7 +18,8 @@ const api = axios.create({
   },
 });
 
-export const getOrders = async (status?: string, createdAfter?: string): Promise<Order[]> => {
+export const getOrders = async (status?: string, createdAfter?
+  : string): Promise<Order[]> => {
   const params: any = {};
   if (status) params.status = status;
   if (createdAfter) params.created_after = createdAfter;
