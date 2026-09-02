@@ -34,7 +34,7 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({ isOpen, onClose })
 
     try {
       const response = await copilotChat(input);
-      setMessages(prev => [...prev, { role: 'assistant', content: response.response }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: response.explanation }]);
     } catch (err) {
       console.error(err);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
