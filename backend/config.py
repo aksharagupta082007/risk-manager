@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./sentinel.db"
     HUGGINGFACE_API_KEY: str = ""
-    HUGGINGFACE_MODEL: str = "meta-llama/Llama-3.2-3B-Instruct"
+    HUGGINGFACE_MODEL: str = "mistralai/Mistral-7B-Instruct-v0.3"
     MERCHANT_NAME: str = "Apex Commerce"
     DEFAULT_MODE: str = "balanced"
     TWILIO_ACCOUNT_SID: str = ""
