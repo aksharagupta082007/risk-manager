@@ -14,6 +14,36 @@ interface CopilotDrawerProps {
 }
 
 export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({ isOpen, onClose }) => {
+  const renderMessage = (content: string) => {
+    return content.split('\n').map((line, i) => {
+      // Parse bold **text** and links [text](url)
+      const boldLinkRegex = /(\*\*.*?\*\*|\[.*?\]\(.*?\))/g;
+      const parts = line.split(boldLinkRegex);
+      
+      return (
+        <div key={i} className="mb-1.5 last:mb-0 min-h-[0.5em] break-words">
+          {parts.map((part, j) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return <strong key={j} className="font-bold">{part.slice(2, -2)}</strong>;
+            }
+            if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
+              const textMatch = part.match(/\[(.*?)\]/);
+              const urlMatch = part.match(/\((.*?)\)/);
+              if (textMatch && urlMatch) {
+                return (
+                  <a key={j} href={urlMatch[1]} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline font-bold">
+                    {textMatch[1]}
+                  </a>
+                );
+              }
+            }
+            return <span key={j}>{part}</span>;
+          })}
+        </div>
+      );
+    });
+  };
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -97,12 +127,12 @@ export const CopilotDrawer: React.FC<CopilotDrawerProps> = ({ isOpen, onClose })
 
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl p-3 text-[11px] leading-relaxed shadow-sm ${
+                  <div className={`max-w-[85%] rounded-2xl p-3 text-[11px] leading-relaxed shadow-sm whitespace-pre-wrap ${
                     msg.role === 'user'
                       ? 'bg-fintech-primary text-white'
                       : 'surface-card text-fintech-text border border-fintech-border'
                   }`}>
-                    {msg.content}
+                    {msg.role === 'assistant' ? renderMessage(msg.content) : msg.content}
                   </div>
                 </div>
               ))}
