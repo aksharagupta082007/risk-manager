@@ -141,7 +141,6 @@ The [ASOS GraphReturns dataset](https://osf.io/c793h/overview) is a fashion-reta
 | ASOS GNN (McGowan et al.) | — | — | **0.8160** | 0.7580 | **0.7920** | — |
 | Returnformer (Cao et al.) | **0.8442** | — | — | 0.8675 | 0.7887 | — |
 
-**Honest positioning**: Sentinel does not beat SOTA on every metric. Returnformer has higher AUC (0.8442 vs 0.8218) and the ASOS GNN has higher F1 (0.7920 vs 0.7774). However, Sentinel **leads on recall** in both modes — catching 87.9% of returns in balanced mode and 95.3% in aggressive mode — and adds a complete merchant operations layer that the papers do not address.
 
 ### IBM ReturnPropensity (Robustness Validation)
 
