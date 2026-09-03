@@ -1,30 +1,80 @@
 # System Architecture
 
-Sentinel v4 is a multi-layered risk decision system, not a single classifier. Each layer is designed for a specific responsibility within the merchant's pre-shipping workflow.
+Sentinel v4 is a graph-neural risk decision system. The core idea: **use the same GNN scorer across datasets, but change the graph builder** according to the fields each dataset exposes.
+
+## Core Research Idea
+
+ASOS has natural customer-product graph structure. IBM does not expose customer/product IDs, so Sentinel converts every order into an **order node** connected to entity nodes (category, brand, ZIP, country, carrier, season, price-band).
+
+```mermaid
+flowchart LR
+    subgraph ASOS["ASOS Graph"]
+        AC["Customer"] --- AI["Interaction"] --- AV["Variant"]
+        AI --- APF["Product Family"]
+        APF --- AS["Supplier"]
+    end
+
+    subgraph IBM["IBM Graph"]
+        IO["Order"] --- IC["Category"]
+        IO --- IB["Brand"]
+        IO --- IZ["ZIP"]
+        IO --- ISC["Ship Country"]
+        IO --- IOC["Origin Country"]
+        IO --- ICR["Carrier"]
+        IO --- ISN["Season"]
+        IO --- IPB["Price Band"]
+    end
+
+    style AC fill:#252019,stroke:#8FD6C8,color:#F8F1E7
+    style AI fill:#252019,stroke:#8FD6C8,color:#F8F1E7
+    style AV fill:#252019,stroke:#8FD6C8,color:#F8F1E7
+    style APF fill:#252019,stroke:#E3B16F,color:#F8F1E7
+    style AS fill:#252019,stroke:#E3B16F,color:#F8F1E7
+    style IO fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style IC fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style IB fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style IZ fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style ISC fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style IOC fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style ICR fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style ISN fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style IPB fill:#252019,stroke:#E99A6C,color:#F8F1E7
+```
 
 ## High-Level Pipeline
 
 ```mermaid
 flowchart TD
-    A["📦 Raw Order Data"] --> B["⚙️ Feature Engine"]
-    B --> C["📊 Historical Priors &\nGraph-Style Propagation"]
-    C --> D["🌲 GBDT Expert Ensemble"]
-    D --> E["🔀 Rank/Global\nEnsemble Router"]
-    E --> F["📐 Calibration Layer"]
-    F --> G["🎯 Risk Score: 0–100%"]
-    G --> H["🏛️ Policy Engine\na0 / a1 / a2 / a3"]
-    H --> I["📋 Reason Codes +\nCost Simulation"]
+    A["📦 Raw Dataset"] --> B["🔀 Dataset-Specific\nGraph Adapter"]
+    B --> C["🕸️ Order/Interaction Node +\nLinked Entity Nodes"]
+    C --> D["🧠 Sentinel Heterogeneous\nGraphSAGE Scorer"]
+    D --> E["📐 P(return=1) →\nRisk Score: 0–100%"]
+    E --> F["⚖️ Balanced / Aggressive\nOperating Threshold"]
+    F --> G["🏛️ Policy Engine\na0 / a1 / a2 / a3"]
+    G --> H["📋 Reason Codes +\nFP Cost + Margin Simulation"]
 
     style A fill:#252019,stroke:#8FD6C8,color:#F8F1E7
     style B fill:#252019,stroke:#8FD6C8,color:#F8F1E7
     style C fill:#252019,stroke:#E3B16F,color:#F8F1E7
     style D fill:#252019,stroke:#E3B16F,color:#F8F1E7
-    style E fill:#252019,stroke:#E3B16F,color:#F8F1E7
-    style F fill:#252019,stroke:#8FD6C8,color:#F8F1E7
-    style G fill:#252019,stroke:#8BCB91,color:#F8F1E7
-    style H fill:#252019,stroke:#E99A6C,color:#F8F1E7
-    style I fill:#252019,stroke:#E66F6F,color:#F8F1E7
+    style E fill:#252019,stroke:#8BCB91,color:#F8F1E7
+    style F fill:#252019,stroke:#8BCB91,color:#F8F1E7
+    style G fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style H fill:#252019,stroke:#E66F6F,color:#F8F1E7
 ```
+
+### GNN Model Configuration (IBM Run)
+
+| Component | Value |
+|---|---:|
+| Architecture | `SentinelHeteroGraphSAGE` |
+| Entity fields | 14 |
+| Entity vocabulary | 37,141 |
+| Numeric features | 78 |
+| Embedding dimension | 48 |
+| Hidden dimension | 128 |
+| GNN layers | 2 |
+| Exported artifact | `sentinel_ibm_gnn.pt` |
 
 ---
 

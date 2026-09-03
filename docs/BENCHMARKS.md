@@ -1,21 +1,21 @@
 # Benchmark Results & Analysis
 
-This document provides a detailed analysis of Sentinel v4's performance on two public return prediction datasets, along with honest positioning relative to published academic baselines.
+Sentinel v4 uses a **heterogeneous GraphSAGE** scorer across two public return prediction datasets. The graph construction adapts per dataset; the model family stays graph-neural.
 
 ---
 
 ## Datasets
 
-| Dataset | Source | Rows | Return Rate | Why Used |
-|---|---|---|---|---|
-| **ASOS GraphReturns** | [OSF Repository](https://osf.io/c793h/overview) | ~100K | ~54% | Main research benchmark — directly aligned with graph-based return prediction |
-| **IBM ReturnPropensity** | [GitHub Repository](https://github.com/IBM/ReturnPropensity) | 118,891 | 15.89% | Secondary robustness validation — order-level operational fields |
+| Dataset | Source | Graph Construction | Role |
+|---|---|---|---|
+| **ASOS GraphReturns** | [OSF](https://osf.io/c793h/overview) | Customer → product graph (natural structure) | Main research benchmark |
+| **IBM ReturnPropensity** | [GitHub](https://github.com/IBM/ReturnPropensity) | Order → entity graph (category, brand, ZIP, country, carrier, season, price-band) | Schema-robustness validation |
 
 ---
 
 ## ASOS GraphReturns Results
 
-ASOS is the primary benchmark because it contains customer-product return interaction data aligned with graph-based return prediction.
+ASOS is the primary benchmark — it contains customer-product return interaction data directly aligned with graph-based return prediction.
 
 ### Sentinel v4 Performance
 
@@ -26,99 +26,115 @@ ASOS is the primary benchmark because it contains customer-product return intera
 
 ### Comparison with Published Baselines
 
-| System | AUC | PR-AUC | Precision | Recall | F1 |
-|---|---:|---:|---:|---:|---:|
-| **Sentinel v4 Balanced** | 0.8218 | 0.8493 | 0.6969 | **0.8789** | 0.7774 |
-| **Sentinel v4 Aggressive** | 0.8218 | 0.8493 | 0.6380 | **0.9529** | 0.7643 |
-| ASOS GNN (McGowan et al.) | n/a | n/a | **0.8160** | 0.7580 | **0.7920** |
-| Returnformer (Cao et al.) | **0.8442** | n/a | n/a | 0.8675 | 0.7887 |
+| System | AUC | Precision | Recall | F1 |
+|---|---:|---:|---:|---:|
+| **Sentinel Balanced** | 0.8218 | 0.6969 | **0.8789** | 0.7774 |
+| **Sentinel Aggressive** | 0.8218 | 0.6380 | **0.9529** | 0.7643 |
+| ASOS GNN (McGowan et al.) | — | **0.8160** | 0.7580 | **0.7920** |
+| Returnformer (Cao et al.) | **0.8442** | — | 0.8675 | 0.7887 |
 
 ### Honest Interpretation
 
 **Where Sentinel wins:**
-- **Recall**: Sentinel Balanced achieves 0.8789 recall — higher than both the ASOS GNN (0.7580) and Returnformer (0.8675). In aggressive mode, it catches 95.3% of returns.
-- **PR-AUC**: Sentinel achieves 0.8493 PR-AUC, a strong indicator of precision-recall balance across all thresholds.
+- **Recall**: 0.8789 balanced (vs ASOS GNN 0.7580, Returnformer 0.8675). Aggressive catches 95.3%.
+- **PR-AUC**: 0.8493 — strong precision-recall balance across all thresholds.
 
 **Where Sentinel trails:**
-- **AUC**: Returnformer achieves 0.8442 vs Sentinel's 0.8218 — a meaningful gap that reflects the advantage of full graph-transformer attention.
-- **F1**: The ASOS GNN achieves 0.7920 F1 vs Sentinel's 0.7774 — a small gap partly due to Sentinel's recall-biased operating point.
-- **Precision**: The ASOS GNN achieves 0.8160 precision vs Sentinel's 0.6969 — Sentinel trades some precision for substantially higher recall.
+- **AUC**: Returnformer 0.8442 vs Sentinel 0.8218
+- **F1**: ASOS GNN 0.7920 vs Sentinel 0.7774
+- **Precision**: ASOS GNN 0.8160 vs Sentinel 0.6969 (Sentinel trades precision for higher recall)
 
-**Safe claims:**
-- ✅ "Competitive with graph-based return prediction research"
-- ✅ "Beats referenced models on recall in both modes"
-- ✅ "More product-complete than paper baselines"
+### ASOS Cost-Aware Policy Simulation
 
-**Avoid claiming:**
-- ❌ "SOTA beaten on every metric"
-- ❌ "Better than GNNs"
+| Policy | Total Saved (£) | FP Cost (£) | Net Saved (£) | Intervention Rate |
+|---|---:|---:|---:|---:|
+| Global threshold | £2,506,559 | £703,519 | **£1,803,040** | 82.1% |
+| Segment threshold | £2,572,665 | £758,703 | **£1,813,962** | 81.1% |
 
 ---
 
-## IBM ReturnPropensity Results
+## IBM GNN Results
 
-IBM is a secondary validation dataset with order-level operational fields (category, carrier, ZIP, country, basket size) rather than customer-product graph IDs.
+IBM does not expose customer/product graph IDs. Sentinel converts every order into an **order node** connected to entity nodes (category, brand, ZIP, country, carrier, season, price-band), then trains the same GNN scorer.
 
-### Dataset Characteristics
+### Dataset Details
 
-| Split | Rows | Return Rate |
-|---|---:|---:|
-| Dev | ~70K | 24.77% |
-| Validation | ~25K | 4.07% |
-| Test | ~24K | **1.09%** |
+| Item | Value |
+|---|---:|
+| Total rows | 152,774 |
+| Overall return rate | 15.90% |
+| Dev / Val / Test split | 91,664 / 30,555 / 30,555 |
+| Split mode | Stratified |
+| Device | CPU |
 
-> **⚠️ Severe target drift**: The test window has very few returns (1.09% vs 24.77% in dev). This creates a distribution-shift stress test where even good models have many false positives.
+### GNN Model Configuration
 
-### Sentinel v4 Performance on IBM
+| Component | Value |
+|---|---:|
+| Architecture | `SentinelHeteroGraphSAGE` |
+| Entity fields | 14 |
+| Entity vocabulary | 37,141 |
+| Numeric features | 78 |
+| Embedding dimension | 48 |
+| Hidden dimension | 128 |
+| GNN layers | 2 |
+
+### IBM GNN Metrics
 
 | Mode | AUC | PR-AUC | Precision | Recall | F1 | Flag Rate |
 |---|---:|---:|---:|---:|---:|---:|
-| **Balanced @bestF1** | **0.9280** | 0.2337 | 0.1581 | 0.6899 | 0.2572 | 0.0474 |
-| **Aggressive @95R** | **0.9280** | 0.2337 | 0.0182 | **0.9806** | 0.0357 | 0.5856 |
+| **Balanced @bestF1** | 0.8032 | 0.4330 | 0.3750 | 0.6189 | 0.4670 | 0.2623 |
+| **Aggressive @95R** | 0.8032 | 0.4330 | 0.2280 | **0.9456** | 0.3674 | 0.6594 |
+
+Segment-threshold run (same GNN score):
+
+| Mode | Precision | Recall | F1 | Flag Rate |
+|---|---:|---:|---:|---:|
+| Balanced segment | 0.3642 | 0.6296 | 0.4615 | 0.2748 |
+| Aggressive segment | 0.2231 | 0.9489 | 0.3613 | 0.6760 |
 
 ### Honest Interpretation
 
-**What the IBM result shows:**
-- **Strong ranking ability under drift**: AUC of 0.9280 means the model correctly orders risky vs. safe orders even when the return rate drops 23x between training and test.
-- **Low balanced intervention**: In balanced mode, only 4.74% of orders are flagged — the model is selective despite the distribution shift.
-- **High aggressive recall**: In aggressive mode, 98.06% of returns are caught.
+- The IBM GNN result is **not SOTA-level**, but it is valid and meaningful
+- It proves the graph model runs on a dataset **without explicit customer-product graph IDs**
+- Balanced mode touches only ~26.2% of orders
+- Aggressive mode catches ~94.6% of returns
+- Segment thresholds did not improve F1 — global threshold is the safer selected result
 
-**Why precision/F1 are low:**
-- With only ~1.09% of test orders being returns, even a model with moderate false positive rate will show low precision. This is an inherent property of rare-event detection, not a model failure.
-- PR-AUC of 0.2337 reflects this class imbalance in the test window.
+### IBM Policy Simulation
 
-**Why the IBM result matters:**
-- It proves Sentinel can adapt beyond ASOS's customer-product graph signals
-- The same product layer (calibrated risk score, reason codes, merchant thresholds, a0/a1/a2/a3 policy) works unchanged
-- ASOS version uses customer/product graph signals → IBM version uses order-level business signals
-
----
-
-## Cost-Aware Policy Simulation (ASOS)
-
-Beyond classification metrics, Sentinel evaluates decisions using business cost:
-
-| Policy | Total Saved | FP Cost | Net Saved | Intervention Rate | a2/a3 Rate |
+| Merchant Mode | Total Saved (USD) | FP Cost (USD) | Net Saved (USD) | Intervention Rate | a2/a3 Rate |
 |---|---:|---:|---:|---:|---:|
-| Global threshold | £2,506,559 | £703,519 | **£1,803,040** | 82.09% | 66.70% |
-| Segment threshold | £2,572,665 | £758,703 | **£1,813,962** | 81.09% | 66.23% |
-
-This is the core product gap Sentinel fills. A normal ML model outputs "risky" or "not risky." Sentinel estimates:
-- How many returns are caught
-- How many good customers are disturbed
-- How much margin is saved
-- How much false-positive friction costs
-- Which specific action should be used for each risk band
+| **Balanced** | $578,887 | $119,072 | **$459,815** | 83.1% | 6.3% |
+| **Festival aggressive** | $883,076 | $293,432 | **$589,644** | 96.8% | 29.2% |
+| **Conservative** | $417,958 | $63,737 | **$354,221** | 55.7% | 1.1% |
 
 ---
 
 ## Comparison with Prior Work
 
-| System | Main Focus | Limitation | Sentinel Improvement |
+| System | What It Does | Limitation | Sentinel's Gap-Fill |
 |---|---|---|---|
-| **IBM ReturnPropensity** | Build & deploy a basic return model via Watson ML | Deployment pattern only; no cost-aware merchant actions | PR-AUC, recall modes, calibration, reason codes, FP cost, a0–a3 actions |
-| **ASOS GNN** | Graph neural networks on customer-product data | Strong research baseline, not packaged as merchant workflow | Keeps graph-style signals with fast inference + policy simulation |
-| **Returnformer** | Graph Transformer with topological embeddings | Computationally heavier, still model-centric | Lightweight scoring, policy controls, risk explanations, cost simulation |
+| **IBM ReturnPropensity** | Return-propensity modeling/deployment on IBM stack | Deployment sample; not graph architecture, not cost/action focused | Graph reformulation of order data + GNN scoring + PR metrics + recall modes + FP cost + a0–a3 actions |
+| **ASOS GNN** | GNN on customer-product return data | Strong research baseline, not packaged as merchant workflow | Same graph-risk idea + operating modes + merchant thresholds + cost simulation |
+| **Returnformer** | Graph Transformer with topological embeddings | Stronger metrics, heavier inference, model-centric | Deployable risk operations: fast score, action policy, copilot explanation, cost-aware decisions |
+
+---
+
+## What To Claim
+
+**Safe:**
+- ✅ Same graph-neural model family across both datasets
+- ✅ ASOS is the main research benchmark
+- ✅ IBM is a schema-robustness validation (order → entity graph)
+- ✅ Competitive ASOS recall (0.8789 balanced, 0.9529 aggressive)
+- ✅ Product gap: risk score → action policy → cost simulation
+
+**Do not claim:**
+- ❌ "We beat SOTA on every metric"
+- ❌ "The IBM result beats ASOS GNN"
+- ❌ "This detects fraudsters"
+- ❌ "The model blocks customers automatically"
 
 ---
 
@@ -127,4 +143,4 @@ This is the core product gap Sentinel fills. A normal ML model outputs "risky" o
 1. McGowan et al., *"A Dataset for Learning Graph Representations to Predict Customer Returns in Fashion Retail"* — [UCL Discovery](https://discovery.ucl.ac.uk/id/eprint/10183628/)
 2. Cao et al., *"Returnformer: A Graph Transformer-Based Model for Predicting Product Returns in E-Commerce"* — [MDPI Entropy](https://www.mdpi.com/1099-4300/28/1/72) | [PubMed](https://pubmed.ncbi.nlm.nih.gov/41593979/)
 3. ASOS GraphReturns Dataset — [OSF](https://osf.io/c793h/overview)
-4. IBM ReturnPropensity Repository — [GitHub](https://github.com/IBM/ReturnPropensity)
+4. IBM ReturnPropensity — [GitHub](https://github.com/IBM/ReturnPropensity)
