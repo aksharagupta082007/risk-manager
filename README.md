@@ -155,23 +155,6 @@ Raw order / interaction data
 
 ---
 
-## ✅ What To Claim
-
-> Sentinel is a graph-neural return/RTO risk manager. It uses graph construction to model relationships between customers, products, and risk-bearing entities, then converts return probability into merchant-controlled actions. On ASOS GraphReturns it is competitive with graph-return literature and stronger on recall than referenced baselines.
-
-**Safe claims:**
-- ✅ Competitive with graph-return research on ASOS GraphReturns
-- ✅ Stronger recall than referenced baselines (0.8789 balanced, 0.9529 aggressive)
-- ✅ Product gap: risk score → action policy → cost simulation
-- ✅ Defense-only, cost-aware, merchant-controlled
-
-**Do not claim:**
-- ❌ "We beat SOTA on every metric"
-- ❌ "This detects fraudsters"
-- ❌ "The model blocks customers automatically"
-
----
-
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
