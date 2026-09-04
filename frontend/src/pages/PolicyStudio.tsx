@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Sliders, Sparkles, ShieldCheck, Zap, Users } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import CountUpComponent from 'react-countup';
@@ -31,11 +31,20 @@ export const PolicyStudio: React.FC = () => {
     finally { setLoading(false); }
   };
 
-  const handleSliderChange = async (key: 'a1_threshold' | 'a2_threshold' | 'a3_threshold', val: number) => {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedSimulate = useCallback((p: Policy) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try { const sim = await simulatePolicy(p); setSimulation(sim); }
+      catch (e) { console.error(e); }
+    }, 400);
+  }, []);
+
+  const handleSliderChange = (key: 'a1_threshold' | 'a2_threshold' | 'a3_threshold', val: number) => {
     const updated = { ...policy, [key]: val };
     setPolicy(updated);
-    try { const sim = await simulatePolicy(updated); setSimulation(sim); }
-    catch (e) { console.error(e); }
+    debouncedSimulate(updated);
   };
 
   const handleModeToggle = async (newMode: 'balanced' | 'festival') => {

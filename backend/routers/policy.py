@@ -61,16 +61,21 @@ def update_policy(payload: PolicyUpdateSchema, db: Session = Depends(get_db)):
 
 @router.post("/simulate")
 def simulate_policy_changes(payload: SimulationRequestSchema, db: Session = Depends(get_db)):
-    orders = db.query(Order).all()
-    orders_data = []
-    for o in orders:
-        score = o.risk_score.risk_score if o.risk_score else 15
-        orders_data.append({
-            "order_id": o.order_id,
-            "risk_score": score,
-            "amount": o.amount,
-            "is_actual_return": (score >= 45) # proxy for ground truth RTO in simulation
-        })
+    # Lightweight query: only fetch the 3 columns needed instead of full ORM objects
+    rows = (
+        db.query(Order.order_id, Order.amount, RiskScore.risk_score)
+        .outerjoin(RiskScore, Order.order_id == RiskScore.order_id)
+        .all()
+    )
+    orders_data = [
+        {
+            "order_id": row.order_id,
+            "risk_score": row.risk_score if row.risk_score is not None else 15,
+            "amount": row.amount,
+            "is_actual_return": ((row.risk_score or 15) >= 45)
+        }
+        for row in rows
+    ]
 
     result = PolicyEngine.simulate(
         orders=orders_data,
