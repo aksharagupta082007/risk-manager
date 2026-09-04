@@ -204,6 +204,7 @@ npm run dev                   # Starts on http://localhost:5173
 | File | Purpose |
 |---|---|
 | `sentinel_litegraph_router_v4.ipynb` | ASOS benchmark notebook (current metrics) |
+| [Google Colab Notebook](https://colab.research.google.com/drive/1xKsezSk2d63gwsu7VlU0_QEj3nzGqVN6?usp=sharing) | Interactive notebook environment for exploring Sentinel's Graph Neural Network |
 
 ---
 

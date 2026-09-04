@@ -4,41 +4,20 @@ Sentinel v4 is a graph-neural risk decision system. The core idea: **use the sam
 
 ## Core Research Idea
 
-ASOS has natural customer-product graph structure. IBM does not expose customer/product IDs, so Sentinel converts every order into an **order node** connected to entity nodes (category, brand, ZIP, country, carrier, season, price-band).
+The ASOS GraphReturns dataset has natural customer-product graph structure, which Sentinel uses to model complex return relationships.
 
 ```mermaid
 flowchart LR
     subgraph ASOS["ASOS Graph"]
-        AC["Customer"] --- AI["Interaction"] --- AV["Variant"]
-        AI --- APF["Product Family"]
-        APF --- AS["Supplier"]
+        C1((Customer)) -->|interaction| V1(Variant)
+        V1 -->|belongs to| P1(Product Family)
+        P1 -->|supplied by| S1(Supplier)
     end
 
-    subgraph IBM["IBM Graph"]
-        IO["Order"] --- IC["Category"]
-        IO --- IB["Brand"]
-        IO --- IZ["ZIP"]
-        IO --- ISC["Ship Country"]
-        IO --- IOC["Origin Country"]
-        IO --- ICR["Carrier"]
-        IO --- ISN["Season"]
-        IO --- IPB["Price Band"]
-    end
-
-    style AC fill:#252019,stroke:#8FD6C8,color:#F8F1E7
-    style AI fill:#252019,stroke:#8FD6C8,color:#F8F1E7
-    style AV fill:#252019,stroke:#8FD6C8,color:#F8F1E7
-    style APF fill:#252019,stroke:#E3B16F,color:#F8F1E7
-    style AS fill:#252019,stroke:#E3B16F,color:#F8F1E7
-    style IO fill:#252019,stroke:#E99A6C,color:#F8F1E7
-    style IC fill:#252019,stroke:#E99A6C,color:#F8F1E7
-    style IB fill:#252019,stroke:#E99A6C,color:#F8F1E7
-    style IZ fill:#252019,stroke:#E99A6C,color:#F8F1E7
-    style ISC fill:#252019,stroke:#E99A6C,color:#F8F1E7
-    style IOC fill:#252019,stroke:#E99A6C,color:#F8F1E7
-    style ICR fill:#252019,stroke:#E99A6C,color:#F8F1E7
-    style ISN fill:#252019,stroke:#E99A6C,color:#F8F1E7
-    style IPB fill:#252019,stroke:#E99A6C,color:#F8F1E7
+    style C1 fill:#252019,stroke:#8FD6C8,color:#F8F1E7
+    style V1 fill:#252019,stroke:#8FD6C8,color:#F8F1E7
+    style P1 fill:#252019,stroke:#E3B16F,color:#F8F1E7
+    style S1 fill:#252019,stroke:#E3B16F,color:#F8F1E7
 ```
 
 ## High-Level Pipeline
@@ -63,18 +42,14 @@ flowchart TD
     style H fill:#252019,stroke:#E66F6F,color:#F8F1E7
 ```
 
-### GNN Model Configuration (IBM Run)
+### GNN Model Configuration
 
 | Component | Value |
 |---|---:|
-| Architecture | `SentinelHeteroGraphSAGE` |
-| Entity fields | 14 |
-| Entity vocabulary | 37,141 |
-| Numeric features | 78 |
+| Model | `SentinelHeteroGraphSAGE` |
 | Embedding dimension | 48 |
 | Hidden dimension | 128 |
 | GNN layers | 2 |
-| Exported artifact | `sentinel_ibm_gnn.pt` |
 
 ---
 
