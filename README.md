@@ -5,7 +5,7 @@
   <h3>Graph-Neural Pre-Shipping Return & RTO Risk Manager for E-Commerce</h3>
 
   <p>
-    <strong>Graph-based return prediction · Same GNN across datasets · Cost-aware merchant actions · Explainable risk scoring</strong>
+    <strong>Graph-based return prediction · Cost-aware merchant actions · Explainable risk scoring</strong>
   </p>
 
   <p>
@@ -31,7 +31,7 @@
 
 ## The Problem
 
-E-commerce merchants lose **15–40% of COD order value** to returns and Return-to-Origin (RTO) logistics costs. Return risk comes from **relationships** — customer history, product/category behavior, geographic delivery patterns, carrier performance, and basket composition — not just isolated order rows.
+E-commerce merchants lose **15–40% of COD order value** to returns and Return-to-Origin (RTO) logistics costs. Return risk comes from **relationships** — customer history, product/category behavior, geographic delivery patterns, and basket composition — not just isolated order rows.
 
 **Sentinel is defense-only.** It does not label a customer as a fraudster and it does not make irreversible denial decisions automatically. It predicts return probability, explains the risk, and recommends the **lowest-friction protective action**.
 
@@ -46,37 +46,31 @@ E-commerce merchants lose **15–40% of COD order value** to returns and Return-
 
 ## 💡 Core Research Idea
 
-> **Use the same graph-neural risk scorer across datasets, but change the graph builder according to the fields each dataset exposes.**
+> **Use a graph-neural network to model the relationships between customers, products, and risk-bearing entities, then convert return probability into merchant-controlled actions.**
 
-ASOS already has natural customer-product graph structure. IBM does not expose customer/product IDs, so every order becomes an **order node** connected to entity nodes.
+The [ASOS GraphReturns dataset](https://osf.io/c793h/overview) has natural customer-product graph structure — customers interact with product variants, which belong to product families and suppliers. A graph model is the natural fit because it learns from these connected entities instead of treating every order as isolated.
 
 ```
-ASOS graph                          IBM graph
-customer ─── interaction ─── variant     order ─── category
-                  │                      order ─── brand
-              product family             order ─── ZIP
-                  │                      order ─── ship country
-              supplier                   order ─── origin country
-                                         order ─── carrier
-                                         order ─── season
-                                         order ─── price band
+ASOS graph
+customer ─── interaction ─── variant
+                  │
+              product family
+                  │
+              supplier
 ```
-
-The graph construction changes. The predictive model family stays **graph-neural**.
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-Raw dataset
+Raw order / interaction data
     │
     ▼
 ┌─────────────────────────────────────────────┐
-│  Dataset-Specific Graph Adapter             │
-│  ASOS: customer → product graph edges       │
-│  IBM: order → entity (category, brand,      │
-│       ZIP, carrier, season) graph edges      │
+│  Graph Construction                         │
+│  Customer → product interaction edges       │
+│  Variant → product family → supplier edges  │
 └─────────────────────┬───────────────────────┘
                       │
                       ▼
@@ -104,25 +98,20 @@ Raw dataset
 └─────────────────────────────────────────────┘
 ```
 
-### GNN Model Details (IBM Run)
+### GNN Model Details
 
 | Component | Value |
 |---|---:|
 | Model | `SentinelHeteroGraphSAGE` |
-| Entity fields | 14 |
-| Entity vocabulary | 37,141 |
-| Numeric features | 78 |
 | Embedding dimension | 48 |
 | Hidden dimension | 128 |
 | GNN layers | 2 |
-| Exported artifact | `sentinel_ibm_gnn.pt` |
 
 ### Why This Architecture?
 
 | Advantage | Detail |
 |---|---|
-| **Same model across datasets** | Graph construction adapts to schema; the GNN scorer stays the same — stronger research story |
-| **Targets the right bottleneck** | Returns depend on relationships (customer history, product/category, ZIP/carrier patterns) — a graph model is the natural fit |
+| **Targets the right bottleneck** | Returns depend on relationships (customer history, product/category, variant behavior) — a graph model is the natural fit |
 | **Two operating modes** | **Balanced** optimizes F1; **Aggressive** catches ~95% of returns for festival/seasonal periods |
 | **Explainable** | Every order returns reason codes: `SERIAL_RETURNER_PROFILE`, `HIGH_RISK_CATEGORY`, `HIGH_VALUE_COD_ORDER` |
 | **Honest about false positives** | Reports intervention rate, FP cost, margin saved — not just AUC/F1 |
@@ -133,7 +122,7 @@ Raw dataset
 
 ## 📊 Benchmark Results
 
-### ASOS GraphReturns (Primary Benchmark)
+### ASOS GraphReturns
 
 [ASOS GraphReturns](https://osf.io/c793h/overview) is the main benchmark — directly aligned with customer-product graph return prediction.
 
@@ -144,43 +133,9 @@ Raw dataset
 | ASOS GNN (McGowan et al.) | — | — | **0.8160** | 0.7580 | **0.7920** | — |
 | Returnformer (Cao et al.) | **0.8442** | — | — | 0.8675 | 0.7887 | — |
 
-**Interpretation**: Sentinel does not beat SOTA on every metric. Returnformer has higher AUC; the ASOS GNN has higher F1. But Sentinel **leads on recall** (0.8789 balanced, 0.9529 aggressive) and adds a complete merchant operations layer.
+**Interpretation**: Sentinel does not beat SOTA on every metric. Returnformer has higher AUC; the ASOS GNN has higher F1. But Sentinel **leads on recall** (0.8789 balanced, 0.9529 aggressive) and adds a complete merchant operations layer that the papers do not address.
 
----
-
-### IBM GNN Results (Schema-Robustness Validation)
-
-IBM has no customer/product graph IDs. Sentinel converts orders into an **entity graph** (category, brand, ZIP, country, carrier, season, price-band nodes) and trains the same GNN scorer.
-
-| Item | Value |
-|---|---:|
-| Rows | 152,774 |
-| Return rate | 15.90% |
-| Split | Stratified (60/20/20) |
-| Device | CPU |
-
-| Mode | AUC | PR-AUC | Precision | Recall | F1 | Flag Rate |
-|---|---:|---:|---:|---:|---:|---:|
-| **Balanced** `@bestF1` | 0.8032 | 0.4330 | 0.3750 | 0.6189 | 0.4670 | 0.2623 |
-| **Aggressive** `@95R` | 0.8032 | 0.4330 | 0.2280 | **0.9456** | 0.3674 | 0.6594 |
-
-**Interpretation**: Not SOTA-level, but the result is valid — it proves the same GNN family works on a dataset without explicit graph structure. Balanced mode touches only ~26% of orders; aggressive catches ~95% of returns.
-
----
-
-### IBM Policy Simulation
-
-The GNN score feeds the same a0/a1/a2/a3 policy engine:
-
-| Merchant Mode | Total Saved (USD) | FP Cost (USD) | Net Saved (USD) | Intervention Rate | a2/a3 Rate |
-|---|---:|---:|---:|---:|---:|
-| Balanced | $578,887 | $119,072 | **$459,815** | 83.1% | 6.3% |
-| Festival aggressive | $883,076 | $293,432 | **$589,644** | 96.8% | 29.2% |
-| Conservative | $417,958 | $63,737 | **$354,221** | 55.7% | 1.1% |
-
----
-
-### ASOS Cost-Aware Policy Simulation
+### Cost-Aware Policy Simulation
 
 | Policy | Total Saved (£) | FP Cost (£) | Net Saved (£) | Intervention Rate |
 |---|---:|---:|---:|---:|
@@ -195,7 +150,6 @@ The GNN score feeds the same a0/a1/a2/a3 policy engine:
 
 | System | What It Does | Limitation | Sentinel's Gap-Fill |
 |---|---|---|---|
-| **IBM ReturnPropensity** | Return-propensity modeling on IBM stack | Deployment sample; not graph-based, not cost/action focused | Graph reformulation of order data + GNN scoring + PR metrics + FP cost + a0–a3 |
 | **ASOS GNN** | GNN on customer-product return data | Strong research baseline, not merchant workflow | Same graph-risk idea + operating modes + merchant thresholds + cost simulation |
 | **Returnformer** | Graph Transformer for product returns | Stronger metrics, heavier inference, model-centric | Deployable risk operations: fast score, action policy, copilot, cost-aware decisions |
 
@@ -203,18 +157,16 @@ The GNN score feeds the same a0/a1/a2/a3 policy engine:
 
 ## ✅ What To Claim
 
-> Sentinel is a graph-neural return/RTO risk manager. It uses graph construction to model relationships between orders and risk-bearing entities, then converts return probability into merchant-controlled actions. On ASOS it is competitive with graph-return literature and stronger on recall than referenced baselines. On IBM it proves the same GNN-style scorer adapts to order-level data by converting orders into an entity graph.
+> Sentinel is a graph-neural return/RTO risk manager. It uses graph construction to model relationships between customers, products, and risk-bearing entities, then converts return probability into merchant-controlled actions. On ASOS GraphReturns it is competitive with graph-return literature and stronger on recall than referenced baselines.
 
 **Safe claims:**
-- ✅ Same graph-neural model family across both datasets
-- ✅ ASOS is the main research benchmark
-- ✅ IBM is a schema-robustness validation
-- ✅ Competitive ASOS recall (0.8789 balanced, 0.9529 aggressive)
+- ✅ Competitive with graph-return research on ASOS GraphReturns
+- ✅ Stronger recall than referenced baselines (0.8789 balanced, 0.9529 aggressive)
 - ✅ Product gap: risk score → action policy → cost simulation
+- ✅ Defense-only, cost-aware, merchant-controlled
 
 **Do not claim:**
 - ❌ "We beat SOTA on every metric"
-- ❌ "The IBM result beats ASOS GNN"
 - ❌ "This detects fraudsters"
 - ❌ "The model blocks customers automatically"
 
@@ -268,10 +220,7 @@ npm run dev                   # Starts on http://localhost:5173
 
 | File | Purpose |
 |---|---|
-| `sentinel_litegraph_router_v4.ipynb` | ASOS benchmark notebook (current ASOS metrics) |
-| `sentinel_ibm_gnn_router_v4.ipynb` | IBM GNN graph-compatible notebook |
-| `sentinel_ibm_gnn.pt` | Exported PyTorch model artifact (IBM GNN) |
-| `sentinel_ibm_gnn_metadata.json` | Model metadata for backend loading |
+| `sentinel_litegraph_router_v4.ipynb` | ASOS benchmark notebook (current metrics) |
 
 ---
 
@@ -279,8 +228,8 @@ npm run dev                   # Starts on http://localhost:5173
 
 | Document | Description |
 |---|---|
-| [Architecture](docs/ARCHITECTURE.md) | System design, GNN model, graph adapters, policy engine, ER diagrams |
-| [Benchmarks](docs/BENCHMARKS.md) | ASOS/IBM results, honest interpretation, comparison with prior work |
+| [Architecture](docs/ARCHITECTURE.md) | System design, GNN model, graph construction, policy engine, ER diagrams |
+| [Benchmarks](docs/BENCHMARKS.md) | ASOS results, honest interpretation, comparison with prior work |
 | [API Reference](docs/API_REFERENCE.md) | All 15+ endpoints with request/response examples |
 | [Deployment](docs/DEPLOYMENT.md) | Render, Vercel, self-hosted, environment variables |
 
@@ -291,7 +240,6 @@ npm run dev                   # Starts on http://localhost:5173
 - **ASOS GraphReturns Dataset**: [OSF Repository](https://osf.io/c793h/overview)
 - **McGowan et al.** — *"A Dataset for Learning Graph Representations to Predict Customer Returns in Fashion Retail"*: [UCL Discovery](https://discovery.ucl.ac.uk/id/eprint/10183628/)
 - **Cao et al.** — *"Returnformer: A Graph Transformer-Based Model for Predicting Product Returns in E-Commerce"*: [MDPI Entropy](https://www.mdpi.com/1099-4300/28/1/72) | [PubMed](https://pubmed.ncbi.nlm.nih.gov/41593979/)
-- **IBM ReturnPropensity**: [GitHub Repository](https://github.com/IBM/ReturnPropensity) | [AggregatedOrderData.csv](https://github.com/IBM/ReturnPropensity/blob/master/AggregatedOrderData.csv)
 
 ---
 
