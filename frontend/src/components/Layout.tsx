@@ -17,6 +17,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOrderSuccess = () => {
+    // Don't close modal here — let the user see the score result first.
+  };
+
+  const handleModalClose = () => {
+    // Full page reload to guarantee fresh data on dashboard
+    window.location.href = '/';
+  };
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' ||
       (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -170,8 +179,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
 
       {/* Global Modals & Drawers */}
-      {isCsvModalOpen && <CSVUploadModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onSuccess={() => {}} />}
-      {isManualModalOpen && <ManualOrderModal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} onSuccess={() => {}} />}
+      {isCsvModalOpen && <CSVUploadModal isOpen={isCsvModalOpen} onClose={handleModalClose} onSuccess={handleOrderSuccess} />}
+      {isManualModalOpen && <ManualOrderModal isOpen={isManualModalOpen} onClose={handleModalClose} onSuccess={handleOrderSuccess} />}
       <CopilotDrawer isOpen={isCopilotOpen} onClose={() => setIsCopilotOpen(false)} />
     </div>
   );

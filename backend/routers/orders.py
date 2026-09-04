@@ -149,7 +149,7 @@ def get_order_by_id(order_id: str, db: Session = Depends(get_db)):
 
 @router.post("/manual")
 def create_manual_order(payload: ManualOrderCreate, db: Session = Depends(get_db)):
-    # Create or get customer
+    # Create or update customer
     cust = db.query(Customer).filter(Customer.customer_id == payload.customer_id).first()
     if not cust:
         cust = Customer(
@@ -163,6 +163,16 @@ def create_manual_order(payload: ManualOrderCreate, db: Session = Depends(get_db
             is_serial_returner=payload.is_serial_returner
         )
         db.add(cust)
+        db.flush()
+    else:
+        # Update existing customer with latest input
+        cust.name = payload.customer_name
+        cust.phone = payload.customer_phone
+        cust.email = payload.customer_email
+        cust.total_orders = payload.customer_total_orders
+        cust.return_count = payload.customer_return_count
+        cust.return_rate = payload.customer_return_count / max(payload.customer_total_orders, 1)
+        cust.is_serial_returner = payload.is_serial_returner
         db.flush()
 
     # Create or get product

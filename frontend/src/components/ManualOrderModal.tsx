@@ -14,23 +14,23 @@ interface ManualOrderModalProps {
 
 export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState<ManualOrderPayload>({
-    customer_id: 'CUST-MAN-101',
-    customer_name: 'Rahul Sharma',
-    customer_phone: '919876543210',
-    customer_email: 'rahul.s@example.com',
-    product_id: 'PROD-MAN-505',
-    product_name: 'Urban Denim Jeans',
+    customer_id: `CUST-MAN-${Date.now()}`,
+    customer_name: '',
+    customer_phone: '',
+    customer_email: '',
+    product_id: `PROD-MAN-${Date.now()}`,
+    product_name: '',
     category: 'Fashion',
-    variant: 'Size 32 - Blue',
-    amount: 2499.0,
+    variant: '',
+    amount: 1499.0,
     payment_method: 'COD',
-    city: 'Bengaluru',
-    pincode: '560001',
-    shipping_address: '123 MG Road, Indiranagar',
-    customer_total_orders: 8,
-    customer_return_count: 5,
-    product_return_rate: 0.35,
-    is_serial_returner: true
+    city: '',
+    pincode: '',
+    shipping_address: '',
+    customer_total_orders: 1,
+    customer_return_count: 0,
+    product_return_rate: 0.10,
+    is_serial_returner: false
   });
 
   const [loading, setLoading] = useState(false);
